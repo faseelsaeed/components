@@ -2,7 +2,6 @@ webix.protoUI({
 	name:"tinymce-editor",
 	defaults:{
 		config:{ theme:"modern", statusbar:false },
-		barHeight:74,
 		value:""
 	},
 	$init:function(config){
@@ -61,7 +60,33 @@ webix.protoUI({
 	},
 	_set_inner_size:function(){
 		if (!this._3rd_editor || !this.$width) return;
-		this._3rd_editor.theme.resizeTo(this.$width, this.$height - this.config.barHeight);
+		        this._3rd_editor.theme.resizeTo(this.$width - 2, this.$height);
+
+	       //recalculate menu and toolbar height when width changes
+	       //toolbar can become bigger if width is smaller
+	       //re-adjust the editor height accordingly
+
+
+	       var menubarHeight = 0;
+	       var toolbarHeight=0;
+	       var element = $$(this.config.id);
+	       if(!element) return;
+
+
+	       var c = element.getNode();
+	       var toolbar = c.getElementsByClassName('mce-toolbar-grp');
+	       var menubar = c.getElementsByClassName('mce-menubar');
+
+
+	       if(toolbar.length>=1){
+		   toolbarHeight = toolbar[0].offsetHeight+1;
+	       }
+	       if(menubar.length>=1){
+		   menubarHeight = toolbar[0].offsetHeight;
+
+	       }
+	       var h= this.$height-toolbarHeight-menubarHeight-2;
+	       this._3rd_editor.theme.resizeTo(this.$width - 2, h);
 	},
 	$setSize:function(x,y){
 		if (webix.ui.view.prototype.$setSize.call(this, x, y)){
