@@ -1,0 +1,154 @@
+//Original Source: https://github.com/webix-hub/components/blob/master/tinymce/tinymce.js
+//
+//modified by Faseel on 01/06/17
+//
+//
+//Added default Codepen path
+//added pointers to local font folder instead of google path
+//fix for dynamic menu and toolbar height adjustments
+
+webix.protoUI({
+    name: "tinymce-editor",
+    defaults: {
+        config: {
+            theme: "modern",
+            statusbar: false,
+            branding: false,
+            menubar: false
+        },
+        //barHeight: 74, //bar height is calculated dynamically
+        value: "",
+        borderless: true
+        
+
+
+    },
+    $init: function (config) {
+        this.$view.className += " webix_selectable";
+        this._waitEditor = webix.promise.defer();
+        this.$ready.push(this.render);
+    },
+    render: function () {
+        this._set_inner_size();
+    },
+    _init_tinymce_once: function () {
+        //set id for future usage
+        this._mce_id = "webix_mce_" + this.config.id;
+        this.$view.innerHTML = "<textarea class='webix_tinymce' id='" + this._mce_id + "' style='width:1px; height:1px'></textarea>";
+
+        //path to tinymce codebase
+        tinyMCEPreInit = {query: "", base: webix.codebase + "tinymce", suffix: ".min"};
+        webix.require("tinymce/tinymce.min.js", function () {
+            if (!tinymce.dom.Event.domLoaded) {
+                //woraround event logic in tinymce
+                tinymce.dom.Event.domLoaded = true;
+                webix.html.addStyle(".mce-tinymce.mce-container{ border-width:0px !important}");
+            }
+
+            var config = this.config.config;
+
+
+            config.mode = "exact";
+            //config.selector= 'textarea.webix_mce',
+            config.height = 300;
+            config.width = 500;
+            config.elements = [this._mce_id];
+            config.id = this._mce_id;
+            /*modification to add codepen.min.css from local directory*/
+            if (!this.config.config.content_css) {
+                config.content_css = [
+                    '//fonts.googleapis.com/css?family=Lato:300,300i,400,400i',
+                    webix.codebase + '/tinymce/css/codepen.min.css'];
+            }
+            //end mod
+
+            var customsetup = config.setup;
+            config.setup = webix.bind(function (editor) {
+                if (customsetup)
+                    customsetup(editor);
+                this._mce_editor_setup(editor);
+            }, this);
+            this.xconfig=config;
+            tinyMCE.init(config);
+            
+            tinyMCE.execCommand('mceAddControl', false, this._mce_id);
+
+        }, this);
+
+        this._init_tinymce_once = function () {};
+    },
+    _mce_editor_setup: function (editor) {       
+        editor.on("init", webix.bind(this._mce_editor_ready, this))
+    },
+    _mce_editor_ready: function (editor) {
+        this._3rd_editor = tinyMCE.get(this._mce_id);
+        this._set_inner_size();
+        this._waitEditor.resolve(this._3rd_editor);
+
+        this.setValue(this.config.value);
+        if (this._focus_await)
+            this.focus();
+    },
+    _set_inner_size: function () {
+
+        if (!this._3rd_editor || !this.$width)
+            return;
+
+        this._3rd_editor.theme.resizeTo(this.$width - 2, this.$height);
+        
+       //dynamic calculation of menu and tool bar height
+       //recalculate menu and toolbar height when width changes
+       //toolbar can become bigger if width is smaller
+       //re-adjust the editor height accordingly
+       
+       
+       var menubarHeight = 0;
+       var toolbarHeight=0;
+       var element = $$(this.config.id);
+       if(!element) return;
+       
+       
+       var c = element.getNode();
+       var toolbar = c.getElementsByClassName('mce-toolbar-grp');
+       var menubar = c.getElementsByClassName('mce-menubar');
+
+       
+       if(toolbar.length>=1){
+           toolbarHeight = toolbar[0].offsetHeight+1;
+       }
+       if(menubar.length>=1){
+           menubarHeight = toolbar[0].offsetHeight;
+           
+       }
+       var h= this.$height-toolbarHeight-menubarHeight-2;
+       this._3rd_editor.theme.resizeTo(this.$width - 2, h);
+  
+      
+        
+    },
+    $setSize: function (x, y) {
+        if (webix.ui.view.prototype.$setSize.call(this, x, y)) {
+            this._init_tinymce_once();
+            this._set_inner_size();
+        }
+    },
+    setValue: function (value) {
+        this.config.value = value;
+        //console.log(value);
+        if (this._3rd_editor)
+            this._3rd_editor.setContent(value);
+    },
+    getValue: function () {
+        return this._3rd_editor ? this._3rd_editor.getContent() : this.config.value;
+    },
+    focus: function () {
+        this._focus_await = true;
+        if (this._3rd_editor)
+            this._3rd_editor.focus();
+    },
+    getEditor: function (waitEditor) {
+        return waitEditor ? this._waitEditor : this._3rd_editor;
+    },
+    refresh: function(){
+    }
+}, webix.ui.view);
