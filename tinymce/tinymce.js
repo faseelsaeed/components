@@ -82,7 +82,7 @@ webix.protoUI({
 		   toolbarHeight = toolbar[0].offsetHeight+1;
 	       }
 	       if(menubar.length>=1){
-		   menubarHeight = toolbar[0].offsetHeight;
+		   menubarHeight = menubar[0].offsetHeight;
 
 	       }
 	       var h= this.$height-toolbarHeight-menubarHeight-2;
